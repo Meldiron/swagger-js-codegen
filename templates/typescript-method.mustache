@@ -10,7 +10,7 @@
     {{#parameters}}
         {{#isPathParameter}}{{&camelCaseName}}{{&cardinality}}: {{> type}},{{/isPathParameter}}
     {{/parameters}}
-    queryParameters: {
+    parameters: {
         {{#parameters}}
             {{#isQueryParameter}}
                 {{^isSingleton}}
@@ -20,19 +20,36 @@
         {{/parameters}}
     } {{&defaultParam}},
     {{#hasBody}}
-    body: 
+    {{#isFormMethod}}form{{/isFormMethod}}{{^isFormMethod}}body{{/isFormMethod}}: 
         {{#parameters}}
             {{#isBodyParameter}}
                 {{^isSingleton}}
                     {{> type}},
                 {{/isSingleton}}
             {{/isBodyParameter}}
+            {{#isFormParameter}}
+                {{^isSingleton}}
+                    {{> type}},
+                {{/isSingleton}}
+            {{/isFormParameter}}
         {{/parameters}}
     {{/hasBody}}
-): Promise<{{#successResponses}} {{> type}} {{^last}} | {{/last}} {{/successResponses}}>
+    {{#hasExtraHeader}}
+        extraHeaders?: {
+        {{#parameters}}
+            {{#isHeaderParameter}}
+                {{^isSingleton}}
+                    '{{&camelCaseName}}'{{&cardinality}}: {{> type}},
+                {{/isSingleton}}
+            {{/isHeaderParameter}}
+        {{/parameters}}
+        }
+    {{/hasExtraHeader}}
+): Promise<{{#successResponses}} {{> type}} {{^last}} | {{/last}} {{/successResponses}}{{^successResponses}}void{{/successResponses}}>
 {
     let path = '{{&path}}';
     let headers: Headers = new Headers();
+    let queryParameters: QueryParameters = {};
 
 {{#isSecure}}
     headers = this.appendAuthHeaders(headers);
@@ -54,15 +71,17 @@
             }
           });
         {{/isPatternType}}
-        {{#default}}
-          /** set default value **/
-          {{#isDefaultQuoted}}
-          queryParameters['{{&name}}'] = '{{default}}';
-          {{/isDefaultQuoted}}
-          {{^isDefaultQuoted}}
-          queryParameters['{{&name}}'] = {{default}};
-          {{/isDefaultQuoted}}
-        {{/default}}
+        {{#defaultSerialized}}
+          queryParameters['{{&name}}'] = {{&defaultSerialized}};
+        {{/defaultSerialized}}
+
+        {{^isPatternType}}
+        if(typeof parameters['{{&camelCaseName}}'] !== 'undefined'){
+            queryParameters['{{&name}}'] = parameters['{{&camelCaseName}}'];
+        }
+
+        queryParameters['{{&name}}'] = this.transformParameter(queryParameters['{{&name}}']{{#transformOperation}}, '{{&transformOperation}}'{{/transformOperation}});
+        {{/isPatternType}}
       {{/isSingleton}}
     {{/isQueryParameter}}
 
@@ -75,15 +94,15 @@
             headers.append('{{&name}}', '{{&singleton}}');
         {{/isSingleton}}
         {{^isSingleton}}
-            if(queryParameters['{{&camelCaseName}}'] !== undefined) {
-                headers.append('{{&name}}', queryParameters['{{&camelCaseName}}']!);
+            if(extraHeaders && typeof extraHeaders['{{&camelCaseName}}'] !== 'undefined') {
+                headers.append('{{&name}}', extraHeaders['{{&camelCaseName}}']!);
             }
         {{/isSingleton}}
     {{/isHeaderParameter}}
 
     {{#required}}
         {{#isQueryParameter}}
-            if(queryParameters['{{&camelCaseName}}'] === undefined) {
+            if(typeof parameters['{{&camelCaseName}}'] === 'undefined') {
                 throw new Error('Missing required parameter: {{&camelCaseName}}');
             }
         {{/isQueryParameter}}
@@ -91,20 +110,10 @@
 
 {{/parameters}}
 
-    queryParameters = queryParametersToSnakeCase(queryParameters);
-
-
-    {{^isBodyParameter}}
-        {{#isPOST}}
-            // queryParameters = {};
-        {{/isPOST}}
-    {{/isBodyParameter}}
-
-
     return this.request(
         '{{method}}',
         `${this.baseUrl}${path}`,
-        {{#hasBody}}body{{/hasBody}}{{^hasBody}}{}{{/hasBody}},
+        {{#hasBody}}{{#isFormMethod}}form{{/isFormMethod}}{{^isFormMethod}}body{{/isFormMethod}}{{/hasBody}}{{^hasBody}}{}{{/hasBody}},
         headers,
         queryParameters
     );

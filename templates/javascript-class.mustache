@@ -1,6 +1,3 @@
-/* eslint-disable */
-import 'isomorphic-fetch';
-
 class {{&className}} {
 
   constructor() {
@@ -9,13 +6,20 @@ class {{&className}} {
   }
 
   serializeQueryParams(parameters) {
-    const str = [];
-    for (let p in parameters) {
-      if (parameters.hasOwnProperty(p)) {
-        str.push(`${encodeURIComponent(p)}=${encodeURIComponent(parameters[p])}`);
-      }
-    }
-    return str.join('&');
+    return Object.keys(parameters)
+      .reduce((acc, p) => {
+        const param = parameters[p];
+        if (typeof param === 'undefined' || param === '') {
+          return acc;
+        }
+        return [
+          ...acc,
+          `${encodeURIComponent(p)}=${encodeURIComponent(
+            String(parameters[p]),
+          )}`,
+        ];
+      }, [])
+      .join('&');
   }
 
   paramsToObject(params) {
@@ -37,6 +41,15 @@ class {{&className}} {
       });
     }
     return queryParameters;
+  }
+
+  transformParameter(value, transformOperation = null) {
+    switch(transformOperation) {
+      case 'joinUsingPipes':
+        return Array.isArray(value) ? value.join('|') : value;
+      default:
+        return value;
+    }
   }
 
    /**
@@ -156,7 +169,7 @@ class {{&className}} {
       const headers = new Headers(headerParams);
     {{#isSecureToken}}
       if (this.token) {
-        headers.Authorization = `Bearer ${this.token}`;
+         headers.append('Authorization', `Bearer ${this.token}`);
       }
     {{/isSecureToken}}
       return headers;

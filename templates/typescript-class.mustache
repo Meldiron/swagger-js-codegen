@@ -1,11 +1,14 @@
-/* tslint:disable */
-import 'isomorphic-fetch';
+export type ThenArg<T> = T extends Promise<infer U>
+    ? U
+    : T extends (...args: any[]) => Promise<infer U>
+    ? U
+    : T;
 
 {{#imports}}
 /// <reference path="{{&.}}" />
 {{/imports}}
 
-type QueryParameters = { [key: string]: string | number | string[] | number[] | undefined };
+type QueryParameters = { [key: string]: string | number | string[] | number[] | boolean | boolean[] | undefined };
 
 {{#definitions}}
 export type {{&name}} = {{#tsType}}{{> type}}{{/tsType}};
@@ -20,35 +23,6 @@ class ApiError {
   }
 }
 
-const queryParametersToSnakeCase = (parameters: QueryParameters) => {
-    const snakeCaseParams: any = {};
-
-    Object.keys(parameters).map(key => {
-        const value = parameters[key];
-
-        snakeCaseParams[toSnakeCase(key)] = value;
-    });
-
-    return snakeCaseParams;
-}
-
-const toSnakeCase = (msg: string) => {
-    const upperChars = msg.match(/([A-Z])/g);
-    if (! upperChars) {
-        return msg;
-    }
-
-    let str = msg.toString();
-    for (var i = 0, n = upperChars.length; i < n; i++) {
-        str = str.replace(new RegExp(upperChars[i]), '_' + upperChars[i].toLowerCase());
-    }
-
-    if (str.slice(0, 1) === '_') {
-        str = str.slice(1);
-    }
-    return str;
-}
-
 /**
  * {{&description}}
  * @class {{&className}}
@@ -61,19 +35,32 @@ class {{&className}} {
         {{#isSecureToken}}
     protected token: string;
         {{/isSecureToken}}
+        {{#isSecureApiKey}}
+            protected apiKey: string;
+        {{/isSecureApiKey}}
     {{/isSecure}}
 
     serializeQueryParams(parameters: QueryParameters) {
-        const str: string[] = [];
-        for (let p in parameters) {
-            if (parameters.hasOwnProperty(p)) {
-                if(parameters[p] !== undefined) {    
-                    const parameter = parameters[p] || "";
-                    str.push(`${encodeURIComponent(p)}=${encodeURIComponent(parameter.toString())}`);
+        return Object.keys(parameters)
+            .reduce((acc, p) => {
+                const param = parameters[p];
+                if(typeof param === 'undefined' || param === '') {
+                    return acc;
                 }
-            }
+                return [...acc, `${encodeURIComponent(p)}=${encodeURIComponent(
+                String(parameters[p]),
+                )}`];
+            }, [])
+            .join('&');
+    }
+
+    protected transformParameter(value: any, transformOperation?: string) {
+        switch(transformOperation) {
+            case 'joinUsingPipes':
+                return Array.isArray(value) ? value.join('|') : value;
+            default:
+                return value;
         }
-        return str.join('&');
     }
 
     public setBaseUrl(baseUrl: string) {
@@ -85,8 +72,13 @@ class {{&className}} {
     public setToken(token: string) {
         this.token = token;
     }
-
         {{/isSecureToken}}
+
+        {{#isSecureApiKey}}
+            public setApiKey(apiKey: string) {
+            this.apiKey = apiKey;
+            }
+        {{/isSecureApiKey}}
 
     protected appendAuthHeaders(headerParams: Headers) {
       const headers = new Headers(headerParams);
@@ -95,21 +87,42 @@ class {{&className}} {
         headers.append('Authorization', `Bearer ${this.token}`);
       }
     {{/isSecureToken}}
+    {{#isSecureApiKey}}
+        if (this.apiKey) {
+        headers.append('{{apiKeyHeaderName}}', this.apiKey);
+        }
+    {{/isSecureApiKey}}
       return headers;
     }
     {{/isSecure}}
 
-    private async request(method: string, url: string, body: any, headers: any, queryParameters: QueryParameters) {
+    private async request(method: string, url: string, body: any, headers: Headers = new Headers(), queryParameters: QueryParameters = {}) {
         const queryParams = queryParameters && Object.keys(queryParameters).length ? this.serializeQueryParams(queryParameters) : null ;
         const urlWithParams = url + (queryParams ? '?' + queryParams : '');
 
-        if (body && !Object.keys(body).length) {
-            body = undefined;
-        } else {
+        if(headers.get('Content-Type') === 'multipart/form-data') {
+            const form = new FormData();
+            for (let k in body) {
+                form.append(k, body[k]);
+            }
+            body = form;
+        } else if(headers.get('Content-Type') === 'application/json' && body && Object.keys(body).length > 0) {
             body = JSON.stringify(body);
+        } else {
+            body = undefined;
         }
 
-        const response = await fetch(urlWithParams, { method, headers, body });
+        if(headers.get('Content-Type') === 'multipart/form-data') {
+            headers.delete('Content-Type');
+        }
+
+        const response = await fetch(urlWithParams, {
+            method,
+            headers,
+            body,
+            credentials: 'include',
+        });
+        
         if(response.ok) {
             return response.json();
         } else {

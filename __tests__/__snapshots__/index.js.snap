@@ -11,15 +11,20 @@ class Api {
   }
 
   serializeQueryParams(parameters) {
-    const str = [];
-    for (let p in parameters) {
-      if (parameters.hasOwnProperty(p)) {
-        str.push(
-          \`\${encodeURIComponent(p)}=\${encodeURIComponent(parameters[p])}\`,
-        );
-      }
-    }
-    return str.join('&');
+    return Object.keys(parameters)
+      .reduce((acc, p) => {
+        const param = parameters[p];
+        if (typeof param === 'undefined' || param === '') {
+          return acc;
+        }
+        return [
+          ...acc,
+          \`\${encodeURIComponent(p)}=\${encodeURIComponent(
+            String(parameters[p]),
+          )}\`,
+        ];
+      }, [])
+      .join('&');
   }
 
   paramsToObject(params) {
@@ -40,6 +45,15 @@ class Api {
       });
     }
     return queryParameters;
+  }
+
+  transformParameter(value, transformOperation = null) {
+    switch (transformOperation) {
+      case 'joinUsingPipes':
+        return Array.isArray(value) ? value.join('|') : value;
+      default:
+        return value;
+    }
   }
 
   /**
@@ -169,7 +183,7 @@ class Api {
   appendAuthHeaders(headerParams) {
     const headers = new Headers(headerParams);
     if (this.token) {
-      headers.Authorization = \`Bearer \${this.token}\`;
+      headers.append('Authorization', \`Bearer \${this.token}\`);
     }
     return headers;
   }
@@ -200,24 +214,35 @@ class Api {
 
     headers.append('Accept', 'application/json');
 
-    if (parameters['queryParam1'] !== undefined) {
+    if (typeof parameters['queryParam1'] !== 'undefined') {
       queryParameters['queryParam1'] = parameters['queryParam1'];
     }
 
-    if (parameters['queryParam1'] === undefined) {
+    queryParameters['queryParam1'] = this.transformParameter(
+      queryParameters['queryParam1'],
+    );
+
+    if (typeof parameters['queryParam1'] === 'undefined') {
       throw Error('Missing required parameter: queryParam1');
     }
 
-    if (parameters['queryParam2'] !== undefined) {
+    if (typeof parameters['queryParam2'] !== 'undefined') {
       queryParameters['queryParam2'] = parameters['queryParam2'];
     }
 
-    /** set default value **/
-    queryParameters['queryParam3'] = 'ACTIVE';
+    queryParameters['queryParam2'] = this.transformParameter(
+      queryParameters['queryParam2'],
+    );
 
-    if (parameters['queryParam3'] !== undefined) {
-      queryParameters['queryParam3'] = parameters['queryParam3'];
+    queryParameters['query_param_3'] = 'ACTIVE';
+
+    if (typeof parameters['queryParam3'] !== 'undefined') {
+      queryParameters['query_param_3'] = parameters['queryParam3'];
     }
+
+    queryParameters['query_param_3'] = this.transformParameter(
+      queryParameters['query_param_3'],
+    );
 
     path = path.replace('{path_parameter_1}', pathParameter1);
 
@@ -269,7 +294,7 @@ class Api {
 
     path = path.replace('{path_parameter_3}', pathParameter3);
 
-    if (parameters[''] !== undefined) {
+    if (typeof parameters[''] !== 'undefined') {
       body = parameters[''];
     }
 
@@ -277,6 +302,127 @@ class Api {
 
     return this.request(
       'POST',
+      \`\${this.baseUrl}\${path}\`,
+      body,
+      headers,
+      queryParameters,
+      form,
+    );
+  }
+
+  /**
+   *
+   * @method
+   * @param {object} parameters - method options and parameters
+   * @param {} parameters. -
+   */
+  simpleUploadOperation(parameters = {}) {
+    let path = '/upload';
+    let body = {};
+    let queryParameters = {};
+    let headers = new Headers();
+    let form = {};
+
+    headers = this.appendAuthHeaders(headers);
+    headers.append('Content-Type', 'multipart/form-data');
+    headers.append('Accept', 'application/json');
+
+    if (typeof parameters[''] !== 'undefined') {
+      form[''] = parameters[''];
+    }
+
+    queryParameters = this.mergeQueryParams(parameters, queryParameters);
+
+    return this.request(
+      'POST',
+      \`\${this.baseUrl}\${path}\`,
+      body,
+      headers,
+      queryParameters,
+      form,
+    );
+  }
+
+  /**
+   *
+   * @method
+   * @param {object} parameters - method options and parameters
+   * @param {} parameters.seasonIds -
+   */
+  adminGetSuitableAgeCategories(parameters = {}) {
+    let path = '/endpoint-with-query-parameter-delimited-by-pipe';
+    let body = {};
+    let queryParameters = {};
+    let headers = new Headers();
+    let form = {};
+
+    headers.append('Accept', 'application/json');
+
+    if (typeof parameters['seasonIds'] !== 'undefined') {
+      queryParameters['seasonIds'] = parameters['seasonIds'];
+    }
+
+    queryParameters['seasonIds'] = this.transformParameter(
+      queryParameters['seasonIds'],
+      'joinUsingPipes',
+    );
+
+    queryParameters = this.mergeQueryParams(parameters, queryParameters);
+
+    return this.request(
+      'GET',
+      \`\${this.baseUrl}\${path}\`,
+      body,
+      headers,
+      queryParameters,
+      form,
+    );
+  }
+
+  /**
+   *
+   * @method
+   * @param {object} parameters - method options and parameters
+   */
+  endpointWithoutOkResponse(parameters = {}) {
+    let path = '/endpoint-without-ok-response';
+    let body = {};
+    let queryParameters = {};
+    let headers = new Headers();
+    let form = {};
+
+    headers.append('Accept', 'application/json');
+
+    queryParameters = this.mergeQueryParams(parameters, queryParameters);
+
+    return this.request(
+      'GET',
+      \`\${this.baseUrl}\${path}\`,
+      body,
+      headers,
+      queryParameters,
+      form,
+    );
+  }
+
+  /**
+   *
+   * @method
+   * @param {object} parameters - method options and parameters
+   */
+  endpointWithAllOf(parameters = {}) {
+    let path = '/endpoint-with-all-of';
+    let body = {};
+    let queryParameters = {};
+    let headers = new Headers();
+    let form = {};
+
+    headers.append('Accept', 'application/json');
+
+    queryParameters = this.mergeQueryParams(parameters, queryParameters);
+
+    return this.request(
+      'GET',
       \`\${this.baseUrl}\${path}\`,
       body,
       headers,
@@ -301,15 +447,20 @@ class Api {
   }
 
   serializeQueryParams(parameters) {
-    const str = [];
-    for (let p in parameters) {
-      if (parameters.hasOwnProperty(p)) {
-        str.push(
-          \`\${encodeURIComponent(p)}=\${encodeURIComponent(parameters[p])}\`,
-        );
-      }
-    }
-    return str.join('&');
+    return Object.keys(parameters)
+      .reduce((acc, p) => {
+        const param = parameters[p];
+        if (typeof param === 'undefined' || param === '') {
+          return acc;
+        }
+        return [
+          ...acc,
+          \`\${encodeURIComponent(p)}=\${encodeURIComponent(
+            String(parameters[p]),
+          )}\`,
+        ];
+      }, [])
+      .join('&');
   }
 
   paramsToObject(params) {
@@ -330,6 +481,15 @@ class Api {
       });
     }
     return queryParameters;
+  }
+
+  transformParameter(value, transformOperation = null) {
+    switch (transformOperation) {
+      case 'joinUsingPipes':
+        return Array.isArray(value) ? value.join('|') : value;
+      default:
+        return value;
+    }
   }
 
   /**
@@ -459,7 +619,7 @@ class Api {
   appendAuthHeaders(headerParams) {
     const headers = new Headers(headerParams);
     if (this.token) {
-      headers.Authorization = \`Bearer \${this.token}\`;
+      headers.append('Authorization', \`Bearer \${this.token}\`);
     }
     return headers;
   }
@@ -471,6 +631,7 @@ class Api {
    * @param {string} parameters.queryParam1 -
    * @param {array} parameters.queryParam2 -
    * @param {string} parameters.queryParam3 -
+   * @param {array} parameters.queryParam4 -
    * @param {string} pathParameter1 -
    * @param {string} pathParameter2 -
    * @param {string} pathParameter3 -
@@ -490,24 +651,46 @@ class Api {
 
     headers.append('Accept', 'application/json');
 
-    if (parameters['queryParam1'] !== undefined) {
+    if (typeof parameters['queryParam1'] !== 'undefined') {
       queryParameters['queryParam1'] = parameters['queryParam1'];
     }
 
-    if (parameters['queryParam1'] === undefined) {
+    queryParameters['queryParam1'] = this.transformParameter(
+      queryParameters['queryParam1'],
+    );
+
+    if (typeof parameters['queryParam1'] === 'undefined') {
       throw Error('Missing required parameter: queryParam1');
     }
 
-    if (parameters['queryParam2'] !== undefined) {
+    if (typeof parameters['queryParam2'] !== 'undefined') {
       queryParameters['queryParam2'] = parameters['queryParam2'];
     }
 
-    /** set default value **/
-    queryParameters['queryParam3'] = 'ACTIVE';
+    queryParameters['queryParam2'] = this.transformParameter(
+      queryParameters['queryParam2'],
+    );
 
-    if (parameters['queryParam3'] !== undefined) {
-      queryParameters['queryParam3'] = parameters['queryParam3'];
+    queryParameters['query_param_3'] = 'ACTIVE';
+
+    if (typeof parameters['queryParam3'] !== 'undefined') {
+      queryParameters['query_param_3'] = parameters['queryParam3'];
     }
+
+    queryParameters['query_param_3'] = this.transformParameter(
+      queryParameters['query_param_3'],
+    );
+
+    queryParameters['queryParam4'] = [1, 'Two', 'Three', 4];
+
+    if (typeof parameters['queryParam4'] !== 'undefined') {
+      queryParameters['queryParam4'] = parameters['queryParam4'];
+    }
+
+    queryParameters['queryParam4'] = this.transformParameter(
+      queryParameters['queryParam4'],
+      'joinUsingPipes',
+    );
 
     path = path.replace('{path_parameter_1}', pathParameter1);
 
@@ -553,11 +736,11 @@ class Api {
     headers.append('Accept', 'application/json');
     headers.append('Content-Type', 'application/json');
 
-    if (parameters['data'] !== undefined) {
+    if (typeof parameters['data'] !== 'undefined') {
       body = parameters['data'];
     }
 
-    if (parameters['data'] === undefined) {
+    if (typeof parameters['data'] === 'undefined') {
       throw Error('Missing required parameter: data');
     }
 
@@ -578,6 +761,32 @@ class Api {
       form,
     );
   }
+
+  /**
+   *
+   * @method
+   * @param {object} parameters - method options and parameters
+   */
+  endpointWithoutOkResponse(parameters = {}) {
+    let path = '/endpoint-without-ok-response';
+    let body = {};
+    let queryParameters = {};
+    let headers = new Headers();
+    let form = {};
+
+    headers.append('Accept', 'application/json');
+
+    queryParameters = this.mergeQueryParams(parameters, queryParameters);
+
+    return this.request(
+      'GET',
+      \`\${this.baseUrl}\${path}\`,
+      body,
+      headers,
+      queryParameters,
+      form,
+    );
+  }
 }
 
 export default new Api();
@@ -588,7 +797,20 @@ exports[`Generates TYPESCRIPT class from Open Api 3.0 spec 1`] = `
 "/* tslint:disable */
 import 'isomorphic-fetch';
 
-type QueryParameters = { [key: string]: string | number | string[] | number[] };
+export type ThenArg<T> = T extends Promise<infer U>
+  ? U
+  : T extends (...args: any[]) => Promise<infer U> ? U : T;
+
+type QueryParameters = {
+  [key: string]:
+    | string
+    | number
+    | string[]
+    | number[]
+    | boolean
+    | boolean[]
+    | undefined;
+};
 
 class ApiError {
   public message: string;
@@ -609,17 +831,29 @@ class Api {
   protected token: string;
 
   serializeQueryParams(parameters: QueryParameters) {
-    const str: string[] = [];
-    for (let p in parameters) {
-      if (parameters.hasOwnProperty(p)) {
-        str.push(
+    return Object.keys(parameters)
+      .reduce((acc, p) => {
+        const param = parameters[p];
+        if (typeof param === 'undefined' || param === '') {
+          return acc;
+        }
+        return [
+          ...acc,
           \`\${encodeURIComponent(p)}=\${encodeURIComponent(
-            parameters[p].toString(),
+            String(parameters[p]),
           )}\`,
-        );
-      }
+        ];
+      }, [])
+      .join('&');
+  }
+
+  protected transformParameter(value: any, transformOperation?: string) {
+    switch (transformOperation) {
+      case 'joinUsingPipes':
+        return Array.isArray(value) ? value.join('|') : value;
+      default:
+        return value;
     }
-    return str.join('&');
   }
 
   public setBaseUrl(baseUrl: string) {
@@ -642,9 +876,8 @@ class Api {
     method: string,
     url: string,
     body: any,
-    headers: any,
-    queryParameters: QueryParameters,
-    form: any,
+    headers: Headers = new Headers(),
+    queryParameters: QueryParameters = {},
   ) {
     const queryParams =
       queryParameters && Object.keys(queryParameters).length
@@ -652,25 +885,24 @@ class Api {
         : null;
     const urlWithParams = url + (queryParams ? '?' + queryParams : '');
 
-    // ugly hack, we need to delete Content-Type header with multipart/form-data
-    // that way, browser will calculate form specific headers on it's own
-    // contentTypeHeader[0] because nearly every header's value is set using array
-    const contentTypeHeader = headers['Content-Type'];
-    if (contentTypeHeader && contentTypeHeader[0] === 'multipart/form-data') {
-      delete headers['Content-Type'];
-    }
-
-    if (body && !Object.keys(body).length) {
-      body = undefined;
-    } else {
-      body = JSON.stringify(body);
-    }
-
-    if (form && Object.keys(form).length) {
-      body = new FormData();
-      for (let k in form) {
-        body.append(k, form[k]);
+    if (headers.get('Content-Type') === 'multipart/form-data') {
+      const form = new FormData();
+      for (let k in body) {
+        form.append(k, body[k]);
       }
+      body = form;
+    } else if (
+      headers.get('Content-Type') === 'application/json' &&
+      body &&
+      Object.keys(body).length > 0
+    ) {
+      body = JSON.stringify(body);
+    } else {
+      body = undefined;
+    }
+
+    if (headers.get('Content-Type') === 'multipart/form-data') {
+      headers.delete('Content-Type');
     }
 
     const response = await fetch(urlWithParams, { method, headers, body });
@@ -692,7 +924,7 @@ class Api {
     pathParameter1: string,
     pathParameter2: string,
     pathParameter3: string,
-    queryParameters: {
+    parameters: {
       queryParam1: string;
       queryParam2?: Array<string>;
       queryParam3?: 'ACTIVE' | 'INACTIVE';
@@ -711,16 +943,39 @@ class Api {
     let path =
       '/path/{path_parameter_1}/segment/{path_parameter_2}/{path_parameter_3}';
     let headers: Headers = new Headers();
-    let form: any = {};
+    let queryParameters: QueryParameters = {};
 
     headers.append('Accept', 'application/json');
 
-    if (queryParameters['queryParam1'] === undefined) {
+    if (typeof parameters['queryParam1'] !== 'undefined') {
+      queryParameters['queryParam1'] = parameters['queryParam1'];
+    }
+
+    queryParameters['queryParam1'] = this.transformParameter(
+      queryParameters['queryParam1'],
+    );
+
+    if (typeof parameters['queryParam1'] === 'undefined') {
       throw new Error('Missing required parameter: queryParam1');
     }
 
-    /** set default value **/
-    queryParameters['queryParam3'] = 'ACTIVE';
+    if (typeof parameters['queryParam2'] !== 'undefined') {
+      queryParameters['queryParam2'] = parameters['queryParam2'];
+    }
+
+    queryParameters['queryParam2'] = this.transformParameter(
+      queryParameters['queryParam2'],
+    );
+
+    queryParameters['query_param_3'] = 'ACTIVE';
+
+    if (typeof parameters['queryParam3'] !== 'undefined') {
+      queryParameters['query_param_3'] = parameters['queryParam3'];
+    }
+
+    queryParameters['query_param_3'] = this.transformParameter(
+      queryParameters['query_param_3'],
+    );
 
     path = path.replace('{path_parameter_1}', pathParameter1.toString());
 
@@ -734,7 +989,6 @@ class Api {
       {},
       headers,
       queryParameters,
-      form,
     );
   }
 
@@ -747,7 +1001,7 @@ class Api {
     pathParameter1: string,
     pathParameter2: string,
     pathParameter3: string,
-    queryParameters: {} = {},
+    parameters: {} = {},
     body: {
       ttl?: number;
 
@@ -759,7 +1013,7 @@ class Api {
     let path =
       '/path/{path_parameter_1}/segment/{path_parameter_2}/{path_parameter_3}';
     let headers: Headers = new Headers();
-    let form: any = {};
+    let queryParameters: QueryParameters = {};
 
     headers = this.appendAuthHeaders(headers);
     headers.append('Content-Type', 'application/json');
@@ -771,16 +1025,130 @@ class Api {
 
     path = path.replace('{path_parameter_3}', pathParameter3.toString());
 
-    form = queryParameters;
-    queryParameters = {};
-
     return this.request(
       'POST',
       \`\${this.baseUrl}\${path}\`,
       body,
       headers,
       queryParameters,
+    );
+  }
+
+  /**
+   *
+   * @method
+   * @name Api#simpleUploadOperation
+   */
+  simpleUploadOperation(
+    parameters: {} = {},
+    form: {
+      upload: File;
+    },
+  ): Promise<{
+    _id?: string;
+  }> {
+    let path = '/upload';
+    let headers: Headers = new Headers();
+    let queryParameters: QueryParameters = {};
+
+    headers = this.appendAuthHeaders(headers);
+    headers.append('Content-Type', 'multipart/form-data');
+    headers.append('Accept', 'application/json');
+
+    return this.request(
+      'POST',
+      \`\${this.baseUrl}\${path}\`,
       form,
+      headers,
+      queryParameters,
+    );
+  }
+
+  /**
+   *
+   * @method
+   * @name Api#adminGetSuitableAgeCategories
+   */
+  adminGetSuitableAgeCategories(
+    parameters: {
+      seasonIds?: Array<string>;
+    } = {},
+  ): Promise<{
+    items: Array<{
+      _id?: string;
+    }>;
+  }> {
+    let path = '/endpoint-with-query-parameter-delimited-by-pipe';
+    let headers: Headers = new Headers();
+    let queryParameters: QueryParameters = {};
+
+    headers.append('Accept', 'application/json');
+
+    if (typeof parameters['seasonIds'] !== 'undefined') {
+      queryParameters['seasonIds'] = parameters['seasonIds'];
+    }
+
+    queryParameters['seasonIds'] = this.transformParameter(
+      queryParameters['seasonIds'],
+      'joinUsingPipes',
+    );
+
+    return this.request(
+      'GET',
+      \`\${this.baseUrl}\${path}\`,
+      {},
+      headers,
+      queryParameters,
+    );
+  }
+
+  /**
+   *
+   * @method
+   * @name Api#endpointWithoutOkResponse
+   */
+  endpointWithoutOkResponse(parameters: {} = {}): Promise<void> {
+    let path = '/endpoint-without-ok-response';
+    let headers: Headers = new Headers();
+    let queryParameters: QueryParameters = {};
+
+    headers.append('Accept', 'application/json');
+
+    return this.request(
+      'GET',
+      \`\${this.baseUrl}\${path}\`,
+      {},
+      headers,
+      queryParameters,
+    );
+  }
+
+  /**
+   *
+   * @method
+   * @name Api#endpointWithAllOf
+   */
+  endpointWithAllOf(
+    parameters: {} = {},
+  ): Promise<
+    Array<{
+      _id: string;
+
+      name?: string;
+    }>
+  > {
+    let path = '/endpoint-with-all-of';
+    let headers: Headers = new Headers();
+    let queryParameters: QueryParameters = {};
+
+    headers.append('Accept', 'application/json');
+
+    return this.request(
+      'GET',
+      \`\${this.baseUrl}\${path}\`,
+      {},
+      headers,
+      queryParameters,
     );
   }
 }
@@ -793,7 +1161,20 @@ exports[`Generates TYPESCRIPT class from Swagger 2 spec 1`] = `
 "/* tslint:disable */
 import 'isomorphic-fetch';
 
-type QueryParameters = { [key: string]: string | number | string[] | number[] };
+export type ThenArg<T> = T extends Promise<infer U>
+  ? U
+  : T extends (...args: any[]) => Promise<infer U> ? U : T;
+
+type QueryParameters = {
+  [key: string]:
+    | string
+    | number
+    | string[]
+    | number[]
+    | boolean
+    | boolean[]
+    | undefined;
+};
 
 class ApiError {
   public message: string;
@@ -814,17 +1195,29 @@ class Api {
   protected token: string;
 
   serializeQueryParams(parameters: QueryParameters) {
-    const str: string[] = [];
-    for (let p in parameters) {
-      if (parameters.hasOwnProperty(p)) {
-        str.push(
+    return Object.keys(parameters)
+      .reduce((acc, p) => {
+        const param = parameters[p];
+        if (typeof param === 'undefined' || param === '') {
+          return acc;
+        }
+        return [
+          ...acc,
           \`\${encodeURIComponent(p)}=\${encodeURIComponent(
-            parameters[p].toString(),
+            String(parameters[p]),
           )}\`,
-        );
-      }
+        ];
+      }, [])
+      .join('&');
+  }
+
+  protected transformParameter(value: any, transformOperation?: string) {
+    switch (transformOperation) {
+      case 'joinUsingPipes':
+        return Array.isArray(value) ? value.join('|') : value;
+      default:
+        return value;
     }
-    return str.join('&');
   }
 
   public setBaseUrl(baseUrl: string) {
@@ -847,9 +1240,8 @@ class Api {
     method: string,
     url: string,
     body: any,
-    headers: any,
-    queryParameters: QueryParameters,
-    form: any,
+    headers: Headers = new Headers(),
+    queryParameters: QueryParameters = {},
   ) {
     const queryParams =
       queryParameters && Object.keys(queryParameters).length
@@ -857,25 +1249,24 @@ class Api {
         : null;
     const urlWithParams = url + (queryParams ? '?' + queryParams : '');
 
-    // ugly hack, we need to delete Content-Type header with multipart/form-data
-    // that way, browser will calculate form specific headers on it's own
-    // contentTypeHeader[0] because nearly every header's value is set using array
-    const contentTypeHeader = headers['Content-Type'];
-    if (contentTypeHeader && contentTypeHeader[0] === 'multipart/form-data') {
-      delete headers['Content-Type'];
-    }
-
-    if (body && !Object.keys(body).length) {
-      body = undefined;
-    } else {
-      body = JSON.stringify(body);
-    }
-
-    if (form && Object.keys(form).length) {
-      body = new FormData();
-      for (let k in form) {
-        body.append(k, form[k]);
+    if (headers.get('Content-Type') === 'multipart/form-data') {
+      const form = new FormData();
+      for (let k in body) {
+        form.append(k, body[k]);
       }
+      body = form;
+    } else if (
+      headers.get('Content-Type') === 'application/json' &&
+      body &&
+      Object.keys(body).length > 0
+    ) {
+      body = JSON.stringify(body);
+    } else {
+      body = undefined;
+    }
+
+    if (headers.get('Content-Type') === 'multipart/form-data') {
+      headers.delete('Content-Type');
     }
 
     const response = await fetch(urlWithParams, { method, headers, body });
@@ -897,10 +1288,11 @@ class Api {
     pathParameter1: string,
     pathParameter2: string,
     pathParameter3: string,
-    queryParameters: {
+    parameters: {
       queryParam1: string;
       queryParam2?: Array<string>;
       queryParam3?: 'ACTIVE' | 'INACTIVE';
+      queryParam4?: Array<string>;
     },
   ): Promise<{
     items?: Array<{
@@ -916,16 +1308,50 @@ class Api {
     let path =
       '/path/{path_parameter_1}/segment/{path_parameter_2}/{path_parameter_3}';
     let headers: Headers = new Headers();
-    let form: any = {};
+    let queryParameters: QueryParameters = {};
 
     headers.append('Accept', 'application/json');
 
-    if (queryParameters['queryParam1'] === undefined) {
+    if (typeof parameters['queryParam1'] !== 'undefined') {
+      queryParameters['queryParam1'] = parameters['queryParam1'];
+    }
+
+    queryParameters['queryParam1'] = this.transformParameter(
+      queryParameters['queryParam1'],
+    );
+
+    if (typeof parameters['queryParam1'] === 'undefined') {
       throw new Error('Missing required parameter: queryParam1');
     }
 
-    /** set default value **/
-    queryParameters['queryParam3'] = ACTIVE;
+    if (typeof parameters['queryParam2'] !== 'undefined') {
+      queryParameters['queryParam2'] = parameters['queryParam2'];
+    }
+
+    queryParameters['queryParam2'] = this.transformParameter(
+      queryParameters['queryParam2'],
+    );
+
+    queryParameters['query_param_3'] = 'ACTIVE';
+
+    if (typeof parameters['queryParam3'] !== 'undefined') {
+      queryParameters['query_param_3'] = parameters['queryParam3'];
+    }
+
+    queryParameters['query_param_3'] = this.transformParameter(
+      queryParameters['query_param_3'],
+    );
+
+    queryParameters['queryParam4'] = [1, 'Two', 'Three', 4];
+
+    if (typeof parameters['queryParam4'] !== 'undefined') {
+      queryParameters['queryParam4'] = parameters['queryParam4'];
+    }
+
+    queryParameters['queryParam4'] = this.transformParameter(
+      queryParameters['queryParam4'],
+      'joinUsingPipes',
+    );
 
     path = path.replace('{path_parameter_1}', pathParameter1.toString());
 
@@ -939,7 +1365,6 @@ class Api {
       {},
       headers,
       queryParameters,
-      form,
     );
   }
 
@@ -952,11 +1377,13 @@ class Api {
     pathParameter1: string,
     pathParameter2: string,
     pathParameter3: string,
-    queryParameters: {},
+    parameters: {},
     body: {
       date?: string;
 
       ttl?: number;
+
+      ips?: Array<string | null> | null;
     },
   ): Promise<{
     _id?: string;
@@ -964,7 +1391,7 @@ class Api {
     let path =
       '/path/{path_parameter_1}/segment/{path_parameter_2}/{path_parameter_3}';
     let headers: Headers = new Headers();
-    let form: any = {};
+    let queryParameters: QueryParameters = {};
 
     headers = this.appendAuthHeaders(headers);
     headers.append('Accept', 'application/json');
@@ -976,16 +1403,33 @@ class Api {
 
     path = path.replace('{path_parameter_3}', pathParameter3.toString());
 
-    form = queryParameters;
-    queryParameters = {};
-
     return this.request(
       'POST',
       \`\${this.baseUrl}\${path}\`,
       body,
       headers,
       queryParameters,
-      form,
+    );
+  }
+
+  /**
+   *
+   * @method
+   * @name Api#endpointWithoutOkResponse
+   */
+  endpointWithoutOkResponse(parameters: {} = {}): Promise<void> {
+    let path = '/endpoint-without-ok-response';
+    let headers: Headers = new Headers();
+    let queryParameters: QueryParameters = {};
+
+    headers.append('Accept', 'application/json');
+
+    return this.request(
+      'GET',
+      \`\${this.baseUrl}\${path}\`,
+      {},
+      headers,
+      queryParameters,
     );
   }
 }

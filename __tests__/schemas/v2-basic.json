@@ -55,11 +55,21 @@
             }
           },
           {
-            "name": "queryParam3",
+            "name": "query_param_3",
             "in": "query",
             "type": "string",
             "enum": ["ACTIVE", "INACTIVE"],
             "default": "ACTIVE"
+          },
+          {
+            "name": "queryParam4",
+            "in": "query",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "pipes",
+            "default": [1, "Two", "Three", 4]
           }
         ],
         "responses": {
@@ -123,6 +133,7 @@
         "operationId": "simpleGetOperation"
       },
       "post": {
+        "operationId": "simplePostOperation",
         "consumes": ["application/json"],
         "produces": ["application/json"],
         "security": [
@@ -152,6 +163,12 @@
                 },
                 "ttl": {
                   "type": "integer"
+                },
+                "ips": {
+                  "type": ["array", "null"],
+                  "items": {
+                    "type": ["string", "null"]
+                  }
                 }
               },
               "type": "object"
@@ -220,10 +237,24 @@
               "type": "object"
             }
           }
-        },
-        "operationId": "simplePostOperation"
+        }
       },
       "x-exegesis-controller": "controllers/ctrl"
+    },
+    "/endpoint-without-ok-response": {
+      "get": {
+        "produces": ["application/json"],
+        "responses": {
+          "302": {
+            "description": "Just simple get redirect operation",
+            "schema": {
+              "type": "string"
+            }
+          }
+        },
+        "operationId": "endpointWithoutOkResponse"
+      },
+      "x-exegesis-controller": "controllers/ctrl2"
     }
   }
 }
