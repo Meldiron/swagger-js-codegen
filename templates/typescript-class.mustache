@@ -1,13 +1,3 @@
-export type ThenArg<T> = T extends Promise<infer U>
-    ? U
-    : T extends (...args: any[]) => Promise<infer U>
-    ? U
-    : T;
-
-{{#imports}}
-/// <reference path="{{&.}}" />
-{{/imports}}
-
 type QueryParameters = { [key: string]: string | number | string[] | number[] | boolean | boolean[] | undefined };
 
 {{#definitions}}
@@ -122,7 +112,7 @@ class {{&className}} {
             body,
             credentials: 'include',
         });
-        
+
         if(response.ok) {
             return response.json();
         } else {
