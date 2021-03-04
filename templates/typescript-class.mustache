@@ -20,6 +20,9 @@ class ApiError {
 class {{&className}} {
 
     protected baseUrl: string = "{{&domain}}";
+    protected defaultHeaders: any = {};
+    protected isDefaultHeaderSet = false;
+
     {{#isSecure}}
         {{#isSecureToken}}
     protected token: string;
@@ -56,6 +59,11 @@ class {{&className}} {
         this.baseUrl = baseUrl;
     }
 
+    public setDefaultHeaders(obj: any) {
+        this.defaultHeaders = obj;
+        this.isDefaultHeaderSet = true;
+    }
+
     {{#isSecure}}
         {{#isSecureToken}}
     public setToken(token: string) {
@@ -71,16 +79,13 @@ class {{&className}} {
 
     protected appendAuthHeaders(headerParams: Headers) {
       const headers = new Headers(headerParams);
-    {{#isSecureToken}}
-      if (this.token) {
-        headers.append('Authorization', `Bearer ${this.token}`);
+
+      if(this.isDefaultHeaderSet) {
+          Object.keys(this.defaultHeaders).forEach((hKey) => {
+            headers.append(hKey, this.defaultHeaders[hKey]);
+          });
       }
-    {{/isSecureToken}}
-    {{#isSecureApiKey}}
-        if (this.apiKey) {
-        headers.append('{{apiKeyHeaderName}}', this.apiKey);
-        }
-    {{/isSecureApiKey}}
+      
       return headers;
     }
     {{/isSecure}}
