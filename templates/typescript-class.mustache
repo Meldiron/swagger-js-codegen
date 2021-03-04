@@ -6,6 +6,7 @@ export type {{&name}} = {{#tsType}}{{> type}}{{/tsType}};
 
 class ApiError {
   public message: string;
+  public details: any = {};
 
   constructor(message: string) {
     this.message = message;
