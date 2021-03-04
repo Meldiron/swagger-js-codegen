@@ -83,7 +83,13 @@ class {{&className}} {
 
       if(this.isDefaultHeaderSet) {
           Object.keys(this.defaultHeaders).forEach((hKey) => {
-            headers.append(hKey, this.defaultHeaders[hKey]);
+            const val = this.defaultHeaders[hKey];
+
+            if(typeof val === "function") {
+                headers.append(hKey, val());
+            } else {
+                headers.append(hKey, val);
+            }
           });
       }
       
