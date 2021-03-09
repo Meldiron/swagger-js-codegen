@@ -8,7 +8,7 @@
 */
 {{&methodName}}(
     {{#parameters}}
-        {{#isPathParameter}}{{&camelCaseName}}{{&cardinality}}: {{> type}},{{/isPathParameter}}
+        {{#isPathParameter}}'{{&camelCaseName}}'{{&cardinality}}: {{> type}},{{/isPathParameter}}
     {{/parameters}}
     parameters: {
         {{#parameters}}
