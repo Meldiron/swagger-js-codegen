@@ -14,7 +14,7 @@
         {{#parameters}}
             {{#isQueryParameter}}
                 {{^isSingleton}}
-                    '{{&camelCaseName}}'{{&cardinality}}: {{> type}},
+                    "{{&camelCaseName}}"{{&cardinality}}: {{> type}},
                 {{/isSingleton}}
             {{/isQueryParameter}}
         {{/parameters}}
