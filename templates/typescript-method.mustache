@@ -8,13 +8,13 @@
 */
 {{&methodName}}(
     {{#parameters}}
-        {{#isPathParameter}}'{{&camelCaseName}}'{{&cardinality}}: {{> type}},{{/isPathParameter}}
+        {{#isPathParameter}}{{&camelCaseName}}{{&cardinality}}: {{> type}},{{/isPathParameter}}
     {{/parameters}}
     parameters: {
         {{#parameters}}
             {{#isQueryParameter}}
                 {{^isSingleton}}
-                    "{{&camelCaseName}}"{{&cardinality}}: {{> type}},
+                    '{{&camelCaseName}}'{{&cardinality}}: {{> type}},
                 {{/isSingleton}}
             {{/isQueryParameter}}
         {{/parameters}}
