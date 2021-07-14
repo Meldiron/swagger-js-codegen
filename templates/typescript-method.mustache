@@ -6,7 +6,7 @@
 {{/externalDocs}}
 * @name {{&className}}#{{&methodName}}
 */
-{{&methodName}}(
+async {{&methodName}}(
     {{#parameters}}
         {{#isPathParameter}}{{&camelCaseName}}{{&cardinality}}: {{> type}},{{/isPathParameter}}
     {{/parameters}}
@@ -52,7 +52,7 @@
     let queryParameters: QueryParameters = {};
 
 {{#isSecure}}
-    headers = this.appendAuthHeaders(headers);
+    headers = await this.appendAuthHeaders(headers);
 {{/isSecure}}
 {{#headers}}
     headers.append('{{&name}}', '{{&value}}');

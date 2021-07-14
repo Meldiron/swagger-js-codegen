@@ -78,22 +78,25 @@ class {{&className}} {
             }
         {{/isSecureApiKey}}
 
-    protected appendAuthHeaders(headerParams: Headers) {
-      const headers = new Headers(headerParams);
+    protected async appendAuthHeaders(headerParams: Headers) {
+        const headers = new Headers(headerParams);
 
-      if(this.isDefaultHeaderSet) {
-          Object.keys(this.defaultHeaders).forEach((hKey) => {
+        if (this.isDefaultHeaderSet) {
+        await Promise.all(
+            Object.keys(this.defaultHeaders).map(async hKey => {
             const val = this.defaultHeaders[hKey];
 
-            if(typeof val === "function") {
-                headers.append(hKey, val());
+            if (typeof val === 'function') {
+                const valExecuted = await val();
+                headers.append(hKey, valExecuted);
             } else {
                 headers.append(hKey, val);
             }
-          });
-      }
-      
-      return headers;
+            })
+        );
+        }
+
+        return headers;
     }
     {{/isSecure}}
 
